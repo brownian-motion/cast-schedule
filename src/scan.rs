@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use regex::Regex;
 use std::hash::Hash;
 use futures_core::Stream;
@@ -56,14 +57,6 @@ fn find_friendly_name<'a, I : Iterator<Item = &'a str>>(txt_records: I) -> Optio
         .filter_map(|c| c.get(1))
         .map(|m| m.as_str().to_string())
         .next()
-}
-
-fn to_ip_addr(record: &Record) -> Option<IpAddr> {
-    match record.kind {
-        RecordKind::A(addr) => Some(addr.into()),
-        RecordKind::AAAA(addr) => Some(addr.into()),
-        _ => None,
-    }
 }
 
 async fn take_until_duplicate<T: Hash + Eq, S: Stream<Item=MdnsResult<T>>>(stream: S) -> MdnsResult<Vec<T>> {

@@ -1,7 +1,15 @@
-
+#![feature(async_fn_in_trait)]
+#![feature(const_option)]
 
 mod scan;
-use crate::scan::*;
+use scan::*;
+
+mod model;
+use model::*;
+
+mod calendar;
+
+mod draw;
 
 #[async_std::main]
 async fn main() {
