@@ -1,5 +1,6 @@
 use chrono::offset::*;
 use chrono::prelude::*;
+use chrono::Duration;
 use std::cmp::{max, min};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -24,6 +25,10 @@ where
             start: self.start.with_timezone(timezone),
             end: self.end.with_timezone(timezone),
         }
+    }
+
+    pub fn duration(&self) -> Duration {
+        self.end.clone() - self.start.clone()
     }
 }
 

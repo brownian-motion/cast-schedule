@@ -1,6 +1,6 @@
 use draw::drawing::Drawing;
 
-mod calendar;
+pub mod calendar;
 
 pub trait Drawer {
     type Subject: ?Sized;

@@ -1,15 +1,4 @@
-#![feature(async_fn_in_trait)]
-#![feature(const_option)]
-
-mod scan;
-use scan::*;
-
-mod model;
-use model::*;
-
-mod calendar;
-
-mod draw;
+use cast_schedule::scan::*;
 
 #[async_std::main]
 async fn main() {

@@ -3,9 +3,7 @@ use regex::Regex;
 use std::hash::Hash;
 use futures_core::Stream;
 use futures_util::stream::StreamExt;
-use futures_util::pin_mut;
-use mdns::RecordKind;
-use mdns::*;
+use futures_time::prelude::*;
 use std::collections::hash_set::*;
 use std::net::*;
 use std::time::Duration;
@@ -13,11 +11,10 @@ use std::time::Duration;
 
 const CAST_PORT: u16 = 8009;
 const SERVICE_NAME: &'static str = "_googlecast._tcp.local";
-const POLL_FREQUENCY: Duration = Duration::from_secs(2);
+const POLL_FREQUENCY: Duration = Duration::from_millis(100);
+const MAX_POLL_TIME_TOTAL: Duration = Duration::from_millis(1500);
 
 pub type MdnsResult<T> = Result<T, mdns::Error>;
-
-pub type SinglePollResult = MdnsResult<FoundDevice>;
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct  FoundDevice {
@@ -27,8 +24,10 @@ pub struct  FoundDevice {
 }
 
 pub async fn scan_once_for_devices() -> MdnsResult<Vec<FoundDevice>> {
-    let stream = scan_for_devices()?;
-    take_until_duplicate(stream).await
+    let stream = scan_for_devices()?
+    .timeout_once(futures_time::time::Duration::from_millis(MAX_POLL_TIME_TOTAL.as_millis() as u64))
+    .fuse();
+    deduplicate(stream).await
 }
 
 pub fn scan_for_devices() -> MdnsResult<impl Stream<Item = MdnsResult<FoundDevice>>> {
@@ -59,19 +58,14 @@ fn find_friendly_name<'a, I : Iterator<Item = &'a str>>(txt_records: I) -> Optio
         .next()
 }
 
-async fn take_until_duplicate<T: Hash + Eq, S: Stream<Item=MdnsResult<T>>>(stream: S) -> MdnsResult<Vec<T>> {
-    let mut seen = HashSet::new();
-
-    pin_mut!(stream);
-    while let Some(elem) = stream.next().await {
-        let elem = elem?;
-        let found_duplicate = seen.contains(&elem);
-        seen.insert(elem);
-        
-        if found_duplicate {
-            break;
+async fn deduplicate<T: Hash + Eq, S: Stream<Item=MdnsResult<T>>>(finite_stream: S) -> MdnsResult<Vec<T>> {
+    let seen = finite_stream.fold(HashSet::new(), |mut set, elem| async move {
+        if let Ok(elem) = elem {
+            set.insert(elem);
         }
-    }
+
+        set
+    }).await;
 
     Ok(seen.into_iter().collect::<Vec<_>>())
 }

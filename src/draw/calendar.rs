@@ -73,6 +73,8 @@ where
             bounds.top + bounds.height,
         );
 
+        println!("{:?}", &self.style);
+
         vec![Drawing::new()
             .with_shape(Shape::Rectangle {
                 width: bounds.width,
@@ -93,6 +95,17 @@ pub struct CalendarDrawer<TZ> {
 }
 
 impl<TZ: TimeZone> CalendarDrawer<TZ> {
+    pub fn new(times: DefiniteTimeRange<TZ>) -> CalendarDrawer<TZ> {
+        CalendarDrawer {
+            start_date: times.start.date_naive(),
+            num_days: (times.end.date_naive() - times.start.date_naive()).num_days() as u32 + 1,
+            day_start_time: times.start.time(),
+            day_duration: (times.end.time() - times.start.time()),
+            time_zone: times.start.timezone(),
+            base_style: Style::filled(RGB::new(70, 127, 200)),
+        }
+    }
+
     fn single_day_drawer(&self, day_num: u32) -> TimeRangeDrawer<TZ> {
         TimeRangeDrawer {
             start: self.start_of_day(day_num),
@@ -155,9 +168,11 @@ where
                     width: bounds.width / self.num_days,
                     height: bounds.height,
                 };
-                events
-                    .iter()
-                    .flat_map(move |event| drawer.draw(event, &sub_bounds).into_iter())
+                println!("Drawing Day {}: {:?}", day_num, drawer.start);
+                events.iter().flat_map(move |event| {
+                    println!("\t Drawing Event {:?}", event);
+                    drawer.draw(event, &sub_bounds).into_iter()
+                })
             })
             .collect()
     }
